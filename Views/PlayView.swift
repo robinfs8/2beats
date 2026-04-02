@@ -1,6 +1,59 @@
 import SwiftUI
 import AVFoundation
-import AudioToolbox
+
+// MARK: - Drum Engine
+
+@MainActor
+private final class DrumEngine {
+    private let engine = AVAudioEngine()
+    private let leftNode = AVAudioPlayerNode()
+    private let rightNode = AVAudioPlayerNode()
+    private let leftBuffer: AVAudioPCMBuffer?
+    private let rightBuffer: AVAudioPCMBuffer?
+
+    init() {
+        leftBuffer = DrumEngine.makeBuffer(frequency: 900, decayRate: 70, durationSeconds: 0.08)
+        rightBuffer = DrumEngine.makeBuffer(frequency: 180, decayRate: 25, durationSeconds: 0.14)
+        engine.attach(leftNode)
+        engine.attach(rightNode)
+        let format = AVAudioFormat(standardFormatWithSampleRate: 44100, channels: 1)!
+        engine.connect(leftNode, to: engine.mainMixerNode, format: format)
+        engine.connect(rightNode, to: engine.mainMixerNode, format: format)
+        try? engine.start()
+        // Start nodes immediately so the first scheduled buffer plays without delay.
+        leftNode.play()
+        rightNode.play()
+    }
+
+    /// Generates a short sine-tone burst with exponential decay (drum-like click).
+    private static func makeBuffer(frequency: Float, decayRate: Float, durationSeconds: Float) -> AVAudioPCMBuffer? {
+        let sampleRate: Double = 44100
+        guard let format = AVAudioFormat(standardFormatWithSampleRate: sampleRate, channels: 1),
+              let buffer = AVAudioPCMBuffer(pcmFormat: format, frameCapacity: AVAudioFrameCount(sampleRate * Double(durationSeconds))) else { return nil }
+        buffer.frameLength = buffer.frameCapacity
+        guard let channelData = buffer.floatChannelData else { return nil }
+        let omega = 2.0 * Float.pi * frequency / Float(sampleRate)
+        for i in 0..<Int(buffer.frameLength) {
+            let t = Float(i) / Float(sampleRate)
+            channelData[0][i] = sinf(omega * Float(i)) * expf(-t * decayRate)
+        }
+        return buffer
+    }
+
+    func playLeft() {
+        guard let buffer = leftBuffer else { return }
+        leftNode.scheduleBuffer(buffer, completionHandler: nil)
+    }
+
+    func playRight() {
+        guard let buffer = rightBuffer else { return }
+        rightNode.scheduleBuffer(buffer, completionHandler: nil)
+    }
+
+    func stop() {
+        engine.stop()
+    }
+}
 
 // MARK: - Play View
 
@@ -13,6 +66,7 @@ struct PlayView: View {
     @State private var leftTimer: Timer?
     @State private var rightTimer: Timer?
     @State private var quoteTimer: Timer?
+    @State private var drumEngine: DrumEngine?
 
     @State private var currentLeftBeat: Int = 0
     @State private var currentRightBeat: Int = 0
@@ -120,6 +174,8 @@ struct PlayView: View {
         }
         .onDisappear {
             stopEngine()
+            drumEngine?.stop()
+            drumEngine = nil
         }
     }
 
@@ -168,15 +224,16 @@ struct PlayView: View {
         let session = AVAudioSession.sharedInstance()
         try? session.setCategory(.playback, mode: .default)
         try? session.setActive(true)
+        drumEngine = DrumEngine()
     }
     func triggerPulse(left: Bool) {
         if left {
             leftPulse = true
-            AudioServicesPlaySystemSound(1103)
+            drumEngine?.playLeft()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { leftPulse = false }
         } else {
             rightPulse = true
-            AudioServicesPlaySystemSound(1105)
+            drumEngine?.playRight()
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { rightPulse = false }
         }
     }
