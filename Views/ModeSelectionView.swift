@@ -1,6 +1,7 @@
 import SwiftUI
 
 struct ModeSelectionView: View {
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
     // levels
     let availableModes = [
         RhythmMode(title: "Calm",    description: "Slow and steady",    leftBeatsPerMeasure: 2, rightBeatsPerMeasure: 4),
@@ -58,7 +59,7 @@ struct ModeSelectionView: View {
                     }
                 }
                 .padding()
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .frame(maxWidth: .infinity, maxHeight: horizontalSizeClass == .regular ? Layout.maxCardHeightIPad : .infinity)
                 .background(Color.white)
                 .cornerRadius(20)
             }

@@ -6,6 +6,7 @@ import AudioToolbox
 
 struct PlayView: View {
     let mode: RhythmMode
+    @Environment(\.horizontalSizeClass) var horizontalSizeClass
 
     @State private var leftPulse = false
     @State private var rightPulse = false
@@ -96,7 +97,7 @@ struct PlayView: View {
             }
             .background(Color.white)
             .cornerRadius(20)
-            .frame(maxWidth: Layout.maxCardWidth)
+            .frame(maxWidth: Layout.maxCardWidth, maxHeight: horizontalSizeClass == .regular ? Layout.maxCardHeightIPad : .infinity)
             .padding(.horizontal)
             .padding(.vertical)
             
