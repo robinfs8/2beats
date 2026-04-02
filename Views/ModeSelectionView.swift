@@ -62,6 +62,7 @@ struct ModeSelectionView: View {
                 .background(Color.white)
                 .cornerRadius(20)
             }
+            .frame(maxWidth: Layout.maxCardWidth)
             .padding(.horizontal)
             .padding(.vertical)
         }
