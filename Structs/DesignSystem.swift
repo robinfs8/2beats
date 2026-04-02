@@ -13,5 +13,7 @@ extension Color {
 enum Layout {
     /// Maximum width of the white card, keeps background visible on iPad.
     static let maxCardWidth: CGFloat = 560
+    /// Maximum height of the white card on iPad (regular size class), prevents excessive vertical stretching.
+    static let maxCardHeightIPad: CGFloat = 700
 }
 
